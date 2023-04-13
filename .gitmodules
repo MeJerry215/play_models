@@ -1,0 +1,6 @@
+[submodule "waifu-diffusion"]
+	path = waifu-diffusion
+	url = https://github.com/kaitas/waifu-diffusion.git
+[submodule "pixiv_AI_crawler"]
+	path = pixiv_AI_crawler
+	url = https://github.com/7eu7d7/pixiv_AI_crawler.git
