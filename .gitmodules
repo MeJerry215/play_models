@@ -4,3 +4,6 @@
 [submodule "pixiv_AI_crawler"]
 	path = pixiv_AI_crawler
 	url = https://github.com/7eu7d7/pixiv_AI_crawler.git
+[submodule "pixivpy"]
+	path = pixivpy
+	url = https://github.com/upbit/pixivpy.git
