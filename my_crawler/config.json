@@ -1,3 +1,7 @@
 {
-    
+    "user_config": {
+        "access_token": "gzNY5fIsLi5CkTdzolhsnz8_TP0zlJYW-WdaAfIEU64",
+        "refresh_token": "RfZlC_YY5tCopMoP_0XkYJpF05olwkKVjnpFj76Q_lY",
+        "refresh_duration": 100
+    }
 }
