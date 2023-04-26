@@ -1,3 +1,4 @@
+from enum import Enum
 USER_AGENT = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)"
 REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
 LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
@@ -11,4 +12,11 @@ REQUESTS_KWARGS = {
     # 'verify': False
 }
 
-CONFIG_FILE = 'config.json'
+CONFIG_FILE = "config.json"
+DB_FILE = "cache.db"
+
+class Resolution(Enum):
+    # SQUARE_MEDIUM = "square_medium"
+    MEDIUM = "medium"
+    LARGE = "large"
+    ORIGINAL = "original"
