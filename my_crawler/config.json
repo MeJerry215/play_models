@@ -1,7 +1,7 @@
 {
     "user_config": {
-        "access_token": "E2Kl3PYqnmH3zzBfbNLtrYPAch7Khjf75OHgw5GHnZE",
-        "refresh_token": "RfZlC_YY5tCopMoP_0XkYJpF05olwkKVjnpFj76Q_lY",
+        "access_token": null,
+        "refresh_token": null,
         "expires_in": 3600
     },
     "worker_config": {
@@ -16,6 +16,19 @@
         "end_date": "2023-04-28",
         "pic_req_num": 1000,
         "directory": "day_r18",
+        "resolution": "original"
+    },
+    "illust_searching": {
+        "keywords": [
+            "\u539f\u795e"
+        ],
+        "search_target": "partial_match_for_tags",
+        "sort": "popular_desc",
+        "duration": null,
+        "start_date": null,
+        "end_date": null,
+        "pic_req_num": 100,
+        "directory": "illust_search",
         "resolution": "original"
     }
 }

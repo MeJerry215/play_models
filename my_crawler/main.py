@@ -7,7 +7,7 @@ import pdb
 import argparse
 from context import Context
 from db_utils import DBUtils
-from downloader import IllustRankDownloader
+from downloader import IllustRankDownloader, IllustSearchingDownloader
 
 def save_token_config(api: AppPixivAPI, config: dict):
     config["user_config"]["access_token"] = api.access_token
@@ -17,7 +17,7 @@ def save_token_config(api: AppPixivAPI, config: dict):
 
 
 def main(args):
-    with open(CONFIG_FILE, 'r') as f:
+    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
         config = json.load(f)
     # https://requests.readthedocs.io/en/latest/api/#requests.Session.get
     api = AppPixivAPI(timeout=config['worker_config']['time_out'])
@@ -26,7 +26,6 @@ def main(args):
         ctx.db_utils = db_utils
         ctx.config = config
         ctx.api = api
-
     # first try auth, if failes, it will prompt and auth again
     try:
         api.auth(refresh_token=config["user_config"]["refresh_token"])
@@ -37,7 +36,7 @@ def main(args):
     finally:
         save_token_config(api, config)
 
-    downloader = IllustRankDownloader(api)
+    downloader = IllustSearchingDownloader(api)
     # main crawl, but during the crawl, the token may changes so the only thing is try save the final token
     try:
         while True:
@@ -46,8 +45,6 @@ def main(args):
                 break
             futures = [ downloader.submit(task) for task in tasks]
             results = [ future.result() for future in futures]
-            print(results)
-            pdb.set_trace()
     except Exception as e:
         logging.info("exception occur:", str(e))
     finally:

@@ -6,6 +6,9 @@ from multiprocessing import cpu_count
 import logging
 from datetime import datetime, timedelta
 import os
+import time
+from filters import file_exists_filter
+from callbacks import db_update_callback
 
 
 def add_days(date_str: str, days: int) -> str:
@@ -13,10 +16,12 @@ def add_days(date_str: str, days: int) -> str:
     new_date = date_obj + timedelta(days=days)
     return new_date.strftime("%Y-%m-%d")
 
+
 class Tag:
     def __init__(self, name, translated_name=None) -> None:
         self.name = name
         self.translated_name = translated_name
+
 
 class User:
     def __init__(self, id, name, account) -> None:
@@ -24,13 +29,17 @@ class User:
         self.name = name
         self.account = account
 
+
 class RecordEntry:
     def __init__(self, result: bool, task) -> None:
         self.result = result
         self.name = task.name.replace(".jpg", "")
         self.url = task.url
-        self.tags = [ Tag(tag.name, tag.translated_name) for tag in task.info.tags]
-        self.user = User(task.info.user.id, task.info.user.name, task.info.user.account)
+        self.tags = [Tag(tag.name, tag.translated_name)
+                     for tag in task.info.tags]
+        self.user = User(task.info.user.id, task.info.user.name,
+                         task.info.user.account)
+
 
 class DownloadStatus:
     def __init__(self, result: bool, task) -> None:
@@ -42,7 +51,7 @@ class DownloadStatus:
 
 
 class DownloadTask:
-    def __init__(self, url, directory, name, info, filters=[], callbacks=[]) -> None:
+    def __init__(self, url, directory, name, info, filters=[file_exists_filter, ], callbacks=[db_update_callback, ]) -> None:
         self.url = url
         self.directory = directory
         self.name = name
@@ -53,13 +62,14 @@ class DownloadTask:
     def __call__(self) -> DownloadStatus:
         result = False
         for filter in self.filters:
-            if filter(self.info):
+            if filter(self):
                 return DownloadStatus(True, self)
         with Context() as ctx:
             if ctx.api is None or ctx.config is None:
                 raise NotImplementedError("ctx api or cfg undefined")
             for i in range(ctx.config['worker_config']['retry_time']):
                 try:
+                    time.sleep(ctx.config['worker_config']['retry_interval'])
                     if not ctx.api.download(self.url, path=self.directory, fname=self.name):
                         logging.warn(
                             f"download {self.url} file {self.name} exists.")
@@ -126,6 +136,55 @@ class IllustRankDownloader(ThreadPoolDownloader):
                     illust.id) + f"_{i}.jpg", self.directory, illust.meta_pages[i].image_urls.get(self.resolution)
                 task = DownloadTask(url, directory, name, illust)
                 tasks.append(task)
+        return tasks
+
+    def submit(self, task):
+        return super().submit(task)
+
+
+class IllustSearchingDownloader(ThreadPoolDownloader):
+    def __init__(self, api: AppPixivAPI) -> None:
+        super().__init__()
+        self.api = api
+        with Context() as ctx:
+            if ctx.config is None:
+                raise NotImplementedError("ctx config undefined")
+            illust_searching_config = ctx.config['illust_searching']
+        self.start_date = illust_searching_config['start_date']
+        self.end_date = illust_searching_config['end_date']
+        self.keywords = illust_searching_config['keywords']
+        self.search_target = illust_searching_config['search_target']
+        self.duration = illust_searching_config['duration']
+        self.sort = illust_searching_config['sort']
+        self.pic_req_num = illust_searching_config['pic_req_num']
+        self.directory = illust_searching_config['directory']
+        self.resolution = illust_searching_config['resolution']
+        self.current_word_index = 0
+        self.next_qs = None
+        self.req_num = 0
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory, exist_ok=True)
+
+    def query(self):
+        if self.current_word_index >= len(self.keywords):
+            return None
+        if self.next_qs is None:
+            word = self.keywords[self.current_word_index]
+            json_result = self.api.search_illust(
+                word, self.search_target, self.sort, self.duration, self.start_date, self.end_date)
+        else:
+            json_result = self.api.search_illust(**self.next_qs)
+        self.next_qs = self.api.parse_qs(json_result.next_url)
+        if self.next_qs is None or self.req_num >= self.pic_req_num:
+            self.current_word_index += 1
+        tasks = []
+        for illust in json_result.illusts:
+            for i in range(len(illust.meta_pages)):
+                name, directory, url = str(
+                    illust.id) + f"_{i}.jpg", self.directory, illust.meta_pages[i].image_urls.get(self.resolution)
+                task = DownloadTask(url, directory, name, illust)
+                tasks.append(task)
+                self.req_num += 1
         return tasks
 
     def submit(self, task):
